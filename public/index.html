@@ -3,13 +3,11 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Registro de Usuarios con Firebase</title>
+    <title>Iniciar Sesión con Firebase</title>
 
     <!-- Firebase SDKs -->
     <script defer src="/__/firebase/10.13.1/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.13.1/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/10.13.1/firebase-firestore-compat.js"></script>
-    <!-- Inicializar Firebase -->
     <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
     <style>
@@ -21,18 +19,19 @@
       #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
       #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
       #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      #registerForm { text-align: center; }
-      #registerForm input { display: block; margin: 8px auto; padding: 8px; }
+      #loginForm, #registerForm { text-align: center; }
+      #loginForm input, #registerForm input { display: block; margin: 8px auto; padding: 8px; }
     </style>
   </head>
   <body>
     <div id="message">
-      <h2>Registro de Usuario</h2>
-      <form id="registerForm">
+      <h2>Iniciar Sesión</h2>
+      <form id="loginForm">
         <input type="email" id="email" placeholder="Correo Electrónico" required>
         <input type="password" id="password" placeholder="Contraseña" required>
-        <button type="submit">Registrarse</button>
+        <button type="submit">Iniciar Sesión</button>
       </form>
+      <p id="register">¿No tienes una cuenta? <a href="registro.html">Registrarse</a></p>
       <p id="load">Firebase SDK Loading&hellip;</p>
     </div>
 
@@ -42,31 +41,42 @@
 
         try {
           let app = firebase.app();
-          let features = ['auth', 'firestore'].filter(feature => typeof app[feature] === 'function');
+          let features = ['auth'].filter(feature => typeof app[feature] === 'function');
           loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
         } catch (e) {
           console.error(e);
           loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
         }
 
-        // Obtener referencia al formulario
-        const registerForm = document.getElementById('registerForm');
-        registerForm.addEventListener('submit', async (e) => {
+        // Comprobar si el usuario ya está autenticado
+        firebase.auth().onAuthStateChanged(user => {
+          if (user) {
+            // Si el usuario ya está autenticado, redirigir a la página de inicio
+            window.location.href = 'home.html';
+          }
+        });
+
+        // Manejar el inicio de sesión
+        const loginForm = document.getElementById('loginForm');
+        loginForm.addEventListener('submit', async (e) => {
           e.preventDefault();
 
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
 
-          // Registrar usuario en Firebase Authentication
           try {
-            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            // Intentar iniciar sesión con Firebase Authentication
+            const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
-            alert('Registro exitoso. Bienvenido ' + user.email);
-
-            // Redirigir al usuario a la página de inicio
-            window.location.href = 'home.html';
+            alert('Inicio de sesión exitoso. Bienvenido ' + user.email);
+            window.location.href = 'home.html'; // Redirigir a la página de inicio
           } catch (error) {
-            alert('Error: ' + error.message);
+            if (error.code === 'auth/user-not-found') {
+              alert('Usuario no encontrado. Redirigiendo a la página de registro.');
+              window.location.href = 'registro.html'; // Redirigir a la página de registro
+            } else {
+              alert('Error: ' + error.message);
+            }
           }
         });
       });
