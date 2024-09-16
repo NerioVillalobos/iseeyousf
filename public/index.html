@@ -3,96 +3,72 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Web Monitor Salesforce Org</title>
+    <title>Registro de Usuarios con Firebase</title>
 
     <!-- Firebase SDKs -->
     <script defer src="/__/firebase/10.13.1/firebase-app-compat.js"></script>
     <script defer src="/__/firebase/10.13.1/firebase-auth-compat.js"></script>
     <script defer src="/__/firebase/10.13.1/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/init.js"></script>
+    <!-- Inicializar Firebase -->
+    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
 
     <style>
-      body { background: #080808; font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #auth-container, #monitor-container { display: none; }
-      #login-form { max-width: 360px; margin: 100px auto; padding: 32px; background: white; border-radius: 4px; }
-      #login-form h2 { margin: 0 0 16px; color: #039be5; }
-      input[type="email"], input[type="password"] { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; border-radius: 4px; }
-      button { width: 100%; padding: 12px; background-color: #03e561; color: white; border: none; border-radius: 4px; cursor: pointer; }
-      button:hover { background-color: #0277bd; }
-      #environments { max-width: 600px; margin: 50px auto; padding: 16px; background: white; border-radius: 4px; }
+      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
+      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
+      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
+      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
+      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
+      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
+      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
+      #registerForm { text-align: center; }
+      #registerForm input { display: block; margin: 8px auto; padding: 8px; }
     </style>
   </head>
   <body>
-    <!-- Login Form -->
-    <div id="auth-container">
-      <div id="login-form">
-        <h2>Iniciar Sesión</h2>
-        <input type="email" id="email" placeholder="Correo electrónico" required>
+    <div id="message">
+      <h2>Registro de Usuario</h2>
+      <form id="registerForm">
+        <input type="email" id="email" placeholder="Correo Electrónico" required>
         <input type="password" id="password" placeholder="Contraseña" required>
-        <button id="login-btn">Iniciar Sesión</button>
-        <p id="error-message" style="color: red;"></p>
-      </div>
-    </div>
-
-    <!-- Salesforce Environment Monitor -->
-    <div id="monitor-container">
-      <button id="logout-btn">Cerrar Sesión</button>
-      <div id="environments">
-        <h2>Ambientes de Salesforce</h2>
-        <pre id="env-output"></pre>
-      </div>
+        <button type="submit">Registrarse</button>
+      </form>
+      <p id="load">Firebase SDK Loading&hellip;</p>
     </div>
 
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-        const authContainer = document.getElementById('auth-container');
-        const monitorContainer = document.getElementById('monitor-container');
-        const loginForm = document.getElementById('login-form');
-        const loginBtn = document.getElementById('login-btn');
-        const logoutBtn = document.getElementById('logout-btn');
-        const envOutput = document.getElementById('env-output');
-        const errorMessage = document.getElementById('error-message');
+        const loadEl = document.querySelector('#load');
 
-        // Inicializa Firebase Authentication
-        firebase.auth().onAuthStateChanged(user => {
-          if (user) {
-            // Usuario autenticado, mostrar la interfaz de monitor
-            authContainer.style.display = 'none';
-            monitorContainer.style.display = 'block';
-            fetchEnvironments();
-          } else {
-            // No autenticado, mostrar el formulario de login
-            authContainer.style.display = 'block';
-            monitorContainer.style.display = 'none';
-          }
-        });
+        try {
+          let app = firebase.app();
+          let features = ['auth', 'firestore'].filter(feature => typeof app[feature] === 'function');
+          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
+        } catch (e) {
+          console.error(e);
+          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        }
 
-        // Maneja el inicio de sesión
-        loginBtn.addEventListener('click', () => {
+        // Obtener referencia al formulario
+        const registerForm = document.getElementById('registerForm');
+        registerForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
-          firebase.auth().signInWithEmailAndPassword(email, password)
-            .catch(error => {
-              errorMessage.textContent = error.message;
-            });
-        });
 
-        // Maneja el cierre de sesión
-        logoutBtn.addEventListener('click', () => {
-          firebase.auth().signOut();
-        });
+          // Registrar usuario en Firebase Authentication
+          try {
+            const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+            alert('Registro exitoso. Bienvenido ' + user.email);
 
-        // Función para obtener y mostrar los ambientes de Salesforce
-        function fetchEnvironments() {
-          fetch('/environments')
-            .then(response => response.json())
-            .then(data => {
-              envOutput.textContent = JSON.stringify(data, null, 2);
-            })
-            .catch(error => {
-              envOutput.textContent = `Error al obtener los ambientes: ${error.message}`;
-            });
-        }
+            // Redirigir al usuario a la página de inicio
+            window.location.href = 'home.html';
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        });
       });
     </script>
   </body>
