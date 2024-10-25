@@ -11,8 +11,8 @@ export const routes: Routes = [
 
   },
   {
-    path: '**',
-    redirectTo: '/tareas',
+    path: '',
+    redirectTo: 'auth',
   }
 
 ];
